@@ -1,32 +1,22 @@
-const express = require('express');//creation d une instance app express js 
-const Port = 8000
-const app = express();
-app.use(express.json())
-app.get('/products', (req, res)=>{
-    //...
-    //... get product from database
-//...
-    res.status(200).send({
-        product_count:1,
-        size:'L'
-    })
-}
-) 
-app.post('/products/:id',(req,res)=> {
-    const { id } = req.params;
-    const { image } = req.body
-    //... 
-    //do something in db
-    //...
-    if(!image){
-        res.status(418).send({message:'no image sent'});
-    }
-    res.status(200).send({
-        product: `image of producr with ${id} created`
-    })
+import express from 'express'
+import requestLogger from './middlewares/requestLogger.js';
+import dotenv from 'dotenv';
+import api from './api/index.js';
+import CONFIG from './config.json' assert {type: 'json'}
+import mongoose from 'mongoose'
 
-})
-app.listen(
-    Port,
-    ()=>console.log('Server is RUNNING')
-)
+dotenv.config()
+const PORT = CONFIG.port || 7000
+const app = express();
+//connect to Database///////////////////////////////////////////////////////////////////////////////////////
+mongoose.connect(CONFIG.mongo_url)
+    .then((db) => {
+        app.use(express.json())
+         app.use(requestLogger)
+        app.use('/api', api({ config: CONFIG, db }))
+        app.listen(
+            PORT,
+            () => console.log(`SERVER IS RUNNIN IN ${PORT}`)
+        )
+    })
+    .catch((err) => { console.log(err, "Received an Error") })
